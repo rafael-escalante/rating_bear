@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:flutter_rating/flutter_rating.dart';
-import 'package:rating_bar_custom/rating_bar_custom.dart';
+
 
 class StarScreen extends StatefulWidget {
   const StarScreen({super.key});
@@ -14,8 +14,23 @@ class StarScreen extends StatefulWidget {
 
 class _MyWidgetState extends State<StarScreen> {
 
+  //variables de flutter_rating
   double rating = 3.5;
   int startCount = 5;
+
+  //cerebro de la logica
+  StateMachineController? controller;
+
+  //state machine input
+  SMITrigger? trigSuccess; //se emociona
+  SMITrigger? trigFail; //se pone sad
+  SMINumber? numLook; //0..80 en tu asset (mirada neutral)
+
+   @override
+  void initState() {
+    super.initState();
+    // Puedes inicializar valores o cargar datos aquí.
+  }
 
   
   @override
@@ -28,7 +43,24 @@ class _MyWidgetState extends State<StarScreen> {
           
           children: [
             SizedBox(height:200,
-            child: RiveAnimation.asset("assets/animated_login_character.riv")),
+            child: RiveAnimation.asset("assets/animated_login_character.riv", stateMachines: const ["Login Machine"],
+            onInit: (artboard){
+              controller = StateMachineController.fromArtboard(artboard, "Login Machine");
+            if(controller == null) return;
+            artboard.addController(controller!);
+
+            trigSuccess = controller!.findInput<bool>("trigSuccess") as SMITrigger?;
+            trigFail = controller!.findInput<bool>("trigFail") as SMITrigger?;
+
+            numLook = controller!.findInput<double>("numLook") as SMINumber?;
+            //valor inicial de la mirada del oso
+            numLook?.value = 50.0;
+            }
+            ),
+            
+
+            
+            ),
             SizedBox(height: 15),
             Text(
               "Enjoying Sounter?",
@@ -79,6 +111,25 @@ class _MyWidgetState extends State<StarScreen> {
 
                   onRatingChanged: (newRating) => setState(() {
                     this.rating = newRating;
+
+                    //Logica de RIVE (animación)
+
+                    //calificacion baja
+                    if (newRating <=2.5){
+                      trigFail?.fire();
+                    }
+                    //calificación alta
+                    else if (newRating >=4.0){
+                      trigSuccess?.fire();
+                    }
+                    //calificaión neutral
+                    else {
+
+                    }
+                    numLook?.value = 50.0;
+
+
+
                   }),
                 ),
               ],
@@ -88,7 +139,7 @@ class _MyWidgetState extends State<StarScreen> {
               child: TextButton(onPressed: (){}, style: TextButton.styleFrom(
                 backgroundColor: Colors.deepPurple,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadiusGeometry.circular(10)
+                  borderRadius: BorderRadius.circular(10)
                 )
               ), child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
@@ -115,5 +166,12 @@ class _MyWidgetState extends State<StarScreen> {
         ),
       )),
     );
+  }
+
+  @override
+  void dispose() {
+    // CRUCIAL: Liberar el controlador de Rive cuando el widget se destruye.
+    controller?.dispose();
+    super.dispose();
   }
 }
