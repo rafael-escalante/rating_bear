@@ -26,11 +26,37 @@ class _MyWidgetState extends State<StarScreen> {
   SMITrigger? trigFail; //se pone sad
   SMINumber? numLook; //0..80 en tu asset (mirada neutral)
 
-   @override
-  void initState() {
-    super.initState();
+  void _riveOnInit(Artboard artboard){
+    controller = StateMachineController.fromArtboard(artboard, "Login Machine");
+
+    if(controller == null){
+      debugPrint("Rive error: State Machine 'Login Machine' no encontrada");
+      return;
+    }
+
+    artboard.addController(controller!);
+
+    trigSuccess = controller!.findInput<bool>("trigSuccess") as SMITrigger?;
+    trigFail = controller!.findInput<bool>("trigFail") as SMITrigger?;
+    numLook = controller!.findInput<double>("numLook") as SMINumber?;
+
+    numLook?.value = 50;
+
+  Future.delayed(const Duration(milliseconds: 50), (){
+    if (rating <=2.5){
+      trigFail?.fire();
+    }
+    else if (rating >= 4){
+      trigSuccess?.fire();
+    }
+
+  });}
+
+  // @override
+  //void initState() {
+  //  super.initState();
     // Puedes inicializar valores o cargar datos aquí.
-  }
+  //}
 
   
   @override
@@ -42,20 +68,21 @@ class _MyWidgetState extends State<StarScreen> {
         child: Column(
           
           children: [
-            SizedBox(height:200,
+            SizedBox(key: ValueKey(rating), height:200,
             child: RiveAnimation.asset("assets/animated_login_character.riv", stateMachines: const ["Login Machine"],
-            onInit: (artboard){
-              controller = StateMachineController.fromArtboard(artboard, "Login Machine");
-            if(controller == null) return;
-            artboard.addController(controller!);
+            onInit: _riveOnInit,
+            //onInit: (artboard){
+            //  controller = StateMachineController.fromArtboard(artboard, "Login Machine");
+            //if(controller == null) return;
+            //artboard.addController(controller!);
 
-            trigSuccess = controller!.findInput<bool>("trigSuccess") as SMITrigger?;
-            trigFail = controller!.findInput<bool>("trigFail") as SMITrigger?;
+            //trigSuccess = controller!.findInput<bool>("trigSuccess") as SMITrigger?;
+            //trigFail = controller!.findInput<bool>("trigFail") as SMITrigger?;
 
-            numLook = controller!.findInput<double>("numLook") as SMINumber?;
+            //numLook = controller!.findInput<double>("numLook") as SMINumber?;
             //valor inicial de la mirada del oso
-            numLook?.value = 50.0;
-            }
+            //numLook?.value = 50.0;
+            //}
             ),
             
 
@@ -112,21 +139,26 @@ class _MyWidgetState extends State<StarScreen> {
                   onRatingChanged: (newRating) => setState(() {
                     this.rating = newRating;
 
+                    //Solucion para interrupciones de animación (Reset del state machine)
+                    //limpiar el controlador actual
+                    controller?.dispose();
+                    controller = null;
+
                     //Logica de RIVE (animación)
 
                     //calificacion baja
-                    if (newRating <=2.5){
-                      trigFail?.fire();
-                    }
+                    //if (newRating <=2.5){
+                    //  trigFail?.fire();
+                    //}
                     //calificación alta
-                    else if (newRating >=4.0){
-                      trigSuccess?.fire();
-                    }
+                    //else if (newRating >=4.0){
+                    //  trigSuccess?.fire();
+                    //}
                     //calificaión neutral
-                    else {
+                    //else {
 
-                    }
-                    numLook?.value = 50.0;
+                    //}
+                    //numLook?.value = 50.0;
 
 
 
