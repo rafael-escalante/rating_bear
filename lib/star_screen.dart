@@ -15,7 +15,7 @@ class StarScreen extends StatefulWidget {
 class _MyWidgetState extends State<StarScreen> {
 
   //variables de flutter_rating
-  double rating = 3.5;
+  double rating = 0.0;
   int startCount = 5;
 
   //cerebro de la logica
@@ -24,41 +24,36 @@ class _MyWidgetState extends State<StarScreen> {
   //state machine input
   SMITrigger? trigSuccess; //se emociona
   SMITrigger? trigFail; //se pone sad
-  SMINumber? numLook; //0..80 en tu asset (mirada neutral)
+  Artboard? _artboard;
 
-  void _riveOnInit(Artboard artboard){
-    controller = StateMachineController.fromArtboard(artboard, "Login Machine");
 
-    if(controller == null){
-      debugPrint("Rive error: State Machine 'Login Machine' no encontrada");
-      return;
+  Future<void>_riveOnInit(bool? issucces)  async {
+    
+    _artboard!.removeController(controller!);
+      
+    controller = StateMachineController.fromArtboard(_artboard!, "Login Machine");
+
+    if (controller != null) {
+      _artboard!.addController(controller!);
+      trigSuccess = controller!.findSMI<SMITrigger>('trigSuccess'); // Éxito
+      trigFail = controller!.findSMI<SMITrigger>('trigFail'); // Fallo
+
     }
 
-    artboard.addController(controller!);
+    
 
-    trigSuccess = controller!.findInput<bool>("trigSuccess") as SMITrigger?;
-    trigFail = controller!.findInput<bool>("trigFail") as SMITrigger?;
-    numLook = controller!.findInput<double>("numLook") as SMINumber?;
+    await Future.delayed(const Duration(milliseconds: 50));
 
-    numLook?.value = 50;
+      if (issucces == null) return;
+      if (issucces == true){
+        trigSuccess?.fire();
+      }
+      else{
+        trigFail?.fire();
+      }
 
-  Future.delayed(const Duration(milliseconds: 50), (){
-    if (rating <=2.5){
-      trigFail?.fire();
-    }
-    else if (rating >= 4){
-      trigSuccess?.fire();
-    }
+  }
 
-  });}
-
-  // @override
-  //void initState() {
-  //  super.initState();
-    // Puedes inicializar valores o cargar datos aquí.
-  //}
-
-  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,8 +64,17 @@ class _MyWidgetState extends State<StarScreen> {
           
           children: [
             SizedBox(key: ValueKey(rating), height:200,
-            child: RiveAnimation.asset("assets/animated_login_character.riv", stateMachines: const ["Login Machine"],
-            onInit: _riveOnInit,
+            child: RiveAnimation.asset("assets/animated_login_character.riv",
+
+            onInit: (artboard){
+              _artboard =artboard;
+              controller = StateMachineController.fromArtboard(artboard, "Login Machine");
+              if (controller != null){
+                artboard.addController(controller!);
+                trigSuccess = controller!.findSMI("trigSuccess");
+                trigFail = controller!.findSMI("trigFail");
+              }
+            }, 
             //onInit: (artboard){
             //  controller = StateMachineController.fromArtboard(artboard, "Login Machine");
             //if(controller == null) return;
@@ -136,34 +140,24 @@ class _MyWidgetState extends State<StarScreen> {
                   color: Colors.amberAccent,
                   allowHalfRating: true,
 
-                  onRatingChanged: (newRating) => setState(() {
-                    this.rating = newRating;
+                  onRatingChanged: (newRating) async {
+                    setState(() {
+                    rating = newRating;
+                  });
 
-                    //Solucion para interrupciones de animación (Reset del state machine)
-                    //limpiar el controlador actual
-                    controller?.dispose();
-                    controller = null;
+                  if (controller !=null){
+                    if (rating >3){
+                      await _riveOnInit(true);
+                    }
+                    else if (rating <3){
+                      await _riveOnInit(false);
+                    }
+                    else{
+                      await _riveOnInit(null);
+                    }
+                  }
 
-                    //Logica de RIVE (animación)
-
-                    //calificacion baja
-                    //if (newRating <=2.5){
-                    //  trigFail?.fire();
-                    //}
-                    //calificación alta
-                    //else if (newRating >=4.0){
-                    //  trigSuccess?.fire();
-                    //}
-                    //calificaión neutral
-                    //else {
-
-                    //}
-                    //numLook?.value = 50.0;
-
-
-
-                  }),
-                ),
+                 }),
               ],
             ),
             SizedBox(height: 35),
